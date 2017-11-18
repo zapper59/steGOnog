@@ -43,18 +43,19 @@ func encrypt() {
   _ct_b, e := base64.StdEncoding.DecodeString(_ct)
   checkerr(e)
   _ct_b = append(_ct_b, streamEnd...)
-  ct := new(big.Int).SetBytes(_ct_b).Bits()
-  fmt.Println("ct: ", ct)
+  ct := new(big.Int).SetBytes(_ct_b).Text(2)  // Binary representation of cyphertext
 
   currat := offset
   for _, val := range ct {
     if currat >= len(img){
       log.Fatal("Image too small")
     }
-    if val == 1 {
+    if val == '0' {
       img[currat][numbytes-1] &= 1
-    } else {
+    } else if val == '1' {
       img[currat][numbytes-1] &^= 1
+    } else {
+      log.Fatalf("Value %d invalid\n", val)
     }
     currat++
   }
@@ -98,6 +99,8 @@ func checkerr(err error) {
 }
 
 func argError() {
-  log.Fatalf("Usage: %s [-d] input-file password [output-file] [message]\n" +
+  fmt.Printf("Usage: %s [-d] input-file password [output-file] [message]\n" +
      "Note: output-file/message only used when -d defined\n", os.Args[0])
+  flag.PrintDefaults()
+  log.Fatalf("Invalid args.  Exiting\n")
 }
