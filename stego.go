@@ -10,10 +10,12 @@ import (
   "encoding/base64"
   "math/big"
   "io/ioutil"
+  "strings"
+  "runtime/debug"
 )
 
 const offset = 64
-//const streamEnd = "1111111111111110"
+const streamEnd_str = "1111111111111110"
 var streamEnd = []byte{0xFF, 0xFE}
 var numbytes = 3
 
@@ -51,9 +53,9 @@ func encrypt() {
       log.Fatal("Image too small")
     }
     if val == '0' {
-      img[currat][numbytes-1] &= 1
+      img[currat][numbytes-1] &= 0xFE
     } else if val == '1' {
-      img[currat][numbytes-1] &^= 1
+      img[currat][numbytes-1] |= 1
     } else {
       log.Fatalf("Value %d invalid\n", val)
     }
@@ -62,6 +64,47 @@ func encrypt() {
 
   writeImage(args[2], img)
   fmt.Printf("Wrote output to %s\n", args[2])
+}
+
+func decrypt() {
+  args := flag.Args() // Args: input-file password output-file message
+  if len(args) != 2 {
+    argError()
+  }
+
+  fmt.Println("Beginning decryption....")
+
+  img := readImage(args[0])
+
+  // Read cyphertext
+  found := false
+  ct := ""
+  for _, val := range img[offset:] {
+    if val[numbytes-1] & 1 == 0 {
+      ct += "0"
+    } else {
+      ct += "1"
+    }
+    if (strings.HasSuffix(ct, streamEnd_str)) {
+      found = true
+      break
+    }
+  }
+  if !found {
+    log.Fatalf("Cyphertext not found.\n")
+  }
+
+  // Decrypt message
+  if _ct_b, good := new(big.Int).SetString(ct, 2); !good {
+    log.Fatalf("Message could not be decrypted.\n")
+  } else {
+    _ct := _ct_b.Bytes()
+    _ct = _ct[:len(_ct) - len(streamEnd)]
+    based := base64.StdEncoding.EncodeToString(_ct)
+    msg, e := gse.Decrypt(getKey(args[1]), based)
+    checkerr(e)
+    fmt.Println("Found message is: ", msg)
+  }
 }
 
 func readImage(file string) (ret [][]byte) {
@@ -84,8 +127,6 @@ func writeImage(file string, data [][]byte) {
   checkerr(e)
 }
 
-func decrypt() {
-}
 
 func getKey(pass string) string {
   sum := sha256.Sum256([]byte(pass))
@@ -94,6 +135,7 @@ func getKey(pass string) string {
 
 func checkerr(err error) {
   if err != nil {
+    debug.PrintStack()
     log.Fatal(err)
   }
 }
