@@ -1,17 +1,16 @@
-#SteGoNog:
+# SteGoNog
+Does simple steganography on .bmp files through a command line interface.
 
-Does simple steganography on .bmp files
-
-##Compilation:
+## Compilation
 go build -o stegonog
 
-##Encryption
+## Encryption
 ./stegonog input-file password output-file message -o stegonog
 
-##Decryption
+## Decryption
 ./stegonog -d input-file password
 
-##Example
+## Example
 ./stegonog cat4.bmp "yolo" out.bmp "yolala"
 ./stegonog -d out.bmp "yolo"
 
